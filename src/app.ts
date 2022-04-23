@@ -1,3 +1,15 @@
+function Autobind(_:Object, _2:string, descriptor:PropertyDescriptor) {
+    var originalMethod = descriptor.value;
+    var adjDescriptor = {
+        configurable: true,
+        get() {
+            var boundFn = originalMethod.bind(this);
+            return boundFn;
+        }
+    };
+    return adjDescriptor;
+}
+
 class ProjectInput {
     rootElement: HTMLDivElement;
     templateElement: HTMLTemplateElement;
@@ -15,10 +27,11 @@ class ProjectInput {
         this.titleInputElement = this.innerElement.querySelector('#title')! as HTMLInputElement;
         this.descriptionInputElement = this.innerElement.querySelector('#description')! as HTMLInputElement;
         this.peopleInputElement = this.innerElement.querySelector('#people')! as HTMLInputElement;
-        this.innerElement.addEventListener('submit', this.submitHandler.bind(this));
+        this.innerElement.addEventListener('submit', this.submitHandler);
         this.attach();
 
     }
+    @Autobind
     private submitHandler(event: Event) {
         event.preventDefault();
         const userInput = this.gatherUserInput();
