@@ -10,6 +10,5 @@ in the form of the application.
 
 ### technical details
 
-    The form is not visible until the application has successfully loaded, this make use of the template
-
+The form is not visible until the application has successfully loaded, this make use of the template
 element or tag to achieve this.
