@@ -79,6 +79,11 @@ class Project{
     constructor(public title:string, public description: string, public people: number, public status: ProjectStatus){
         this.id = Math.random().toString(16);
     }
+    get persons(){
+        if(this.people == 1)
+            return "1 Person";
+        return `${this.people} Persons`;
+    }
 }
 
 class ProjectState extends State<Project>{
@@ -220,8 +225,8 @@ class ProjectItem extends Component<HTMLUListElement,HTMLLIElement>{
         const peopleElement = this.innerElement.querySelector("h3")!;
         titleElement.textContent = project.title;
         descriptionElement.textContent = project.description;
-        peopleElement.textContent = project.people.toString();
-        console.log("CALLED")
+        peopleElement.textContent = project.persons + " assigned";
+        
     }
 
     public configure(): void {
