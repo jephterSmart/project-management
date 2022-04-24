@@ -1,3 +1,5 @@
+
+//Decorator
 function Autobind(_:Object, _2:string, descriptor:PropertyDescriptor) {
     var originalMethod = descriptor.value;
     var adjDescriptor = {
@@ -9,8 +11,36 @@ function Autobind(_:Object, _2:string, descriptor:PropertyDescriptor) {
     };
     return adjDescriptor;
 }
+//Utility Function
+interface Validatable {
+    value: string | number;
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    required?: boolean;
+}
+function validate(validatable: Validatable){
+    let isValid = true;
+    if(validatable.required){
+        isValid = isValid && validatable.value.toString().trim().length !== 0;
+    }
+    if(validatable.minLength && typeof validatable.value == "string"){
+        isValid = isValid && validatable.value.trim().length >= validatable.minLength;
+    }
+    if(validatable.maxLength && typeof validatable.value == "string"){
+        isValid = isValid && validatable.value.trim().length <= validatable.maxLength;
+    }
+    if(validatable.min && typeof validatable.value == "number"){
+        isValid = isValid && validatable.value >= validatable.min;
+    }
+    if(validatable.max && typeof validatable.value == "number"){
+        isValid = isValid && validatable.value <= validatable.max;
+    }
+    return isValid;
+}
 
-type Listener<T> = (projects: T[]) => {};
+type Listener<T> = (projects: T[]) => void;
 
 class State<T>{
     
@@ -32,8 +62,9 @@ class State<T>{
         this.listeners.push(listener);
     }
     private updateObservers(){
+        
         for(let listener of this.listeners){
-            listener(this.state);
+            listener(this.state.slice());
         }
     }
 
@@ -66,7 +97,7 @@ class ProjectState extends State<Project>{
 abstract class Component<T extends HTMLElement, U extends HTMLElement>{
     rootElement: T;
     templateElement: HTMLTemplateElement;
-    innerElement: U;
+    protected innerElement: U;
     insertionPosition: "afterbegin"|"beforeend";
     constructor(templateId: string, hostId: string, insertionPosition: "afterbegin"|"beforeend", newelementId?:string){
         this.rootElement = document.getElementById(hostId)! as T;
@@ -118,6 +149,7 @@ class ProjectInput extends Component<HTMLDivElement, HTMLFormElement> {
         if (Array.isArray(userInput)) {
             const [title, description, people] = userInput;
             this.projectState.addData(new Project(title, description,people, ProjectStatus.Active));
+            console.log(userInput)
             this.clearFields();
         }   
     }
@@ -126,8 +158,11 @@ class ProjectInput extends Component<HTMLDivElement, HTMLFormElement> {
         const enteredTitle = this.titleInputElement.value;
         const enteredDescription = this.descriptionInputElement.value;
         const enteredPeople = this.peopleInputElement.value;
-        console.log(enteredDescription, enteredPeople, enteredTitle)
-        if(enteredTitle.trim().length === 0 || enteredDescription.trim().length === 0 || enteredPeople.trim().length === 0) {
+        
+        const isTitleValid = validate({value:enteredTitle, required:true, minLength:5});
+        const isDescriptionValid = validate({value:enteredDescription, required:true, minLength:10});
+        const isAmountOfPersonsValid = validate({value: +enteredPeople, required:true, min:1,max:10});
+        if(!(isTitleValid ||isDescriptionValid || isAmountOfPersonsValid)) {
             alert('Invalid input, please try again');
             return;
         }
@@ -144,4 +179,58 @@ class ProjectInput extends Component<HTMLDivElement, HTMLFormElement> {
 
 }
 
-const prjInput = new ProjectInput();
+class ProjectList extends Component<HTMLDivElement, HTMLElement>{
+    projectState: ProjectState;
+   
+    constructor(private type: ProjectStatus){
+        super("project-list", "app","beforeend",`${type}-projects`);
+        this.projectState = ProjectState.getInstance();
+        
+
+        const h2Element = this.innerElement.querySelector("h2")!;
+        const ulElement = this.innerElement.querySelector(`#${this.type}-projects ul`)! as HTMLUListElement;
+        h2Element.textContent = type.toString().toUpperCase();
+        ulElement.id = `${this.type}-list`;
+        this.projectState.addListeners(this.getUpdatedProjects)
+        
+    }
+    @Autobind
+    private getUpdatedProjects(projects: Project[]){
+        const ulElement = this.innerElement.querySelector(`#${this.type}-projects ul`)! as HTMLUListElement;
+        ulElement.innerHTML = "";
+        
+        for(const project of projects){
+            if(project.status == this.type)
+            new ProjectItem(project,`${this.type}-list`);
+        }
+    }
+    public configure(): void {
+        
+    }
+    public renderComponent(): void {
+        
+    }
+}
+class ProjectItem extends Component<HTMLUListElement,HTMLLIElement>{
+    constructor(project: Project, hostId: string){
+
+        super("single-project", hostId, "beforeend", project.id);
+        const titleElement = this.innerElement.querySelector("h2")!;
+        const descriptionElement = this.innerElement.querySelector("p")!;
+        const peopleElement = this.innerElement.querySelector("h3")!;
+        titleElement.textContent = project.title;
+        descriptionElement.textContent = project.description;
+        peopleElement.textContent = project.people.toString();
+        console.log("CALLED")
+    }
+
+    public configure(): void {
+        
+    }
+    public renderComponent(): void {
+        
+    }
+} 
+new ProjectInput();
+new ProjectList(ProjectStatus.Active);
+new ProjectList(ProjectStatus.Finished);
